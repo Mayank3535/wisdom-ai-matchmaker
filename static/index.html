@@ -11,7 +11,8 @@
 .nav{height:68px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:5}
 .brand{font-size:21px;font-weight:800}.brand span{color:var(--primary)}.navlinks button{border:0;background:none;padding:10px 14px;color:#555;cursor:pointer;font-size:14px}.navlinks button.active{color:var(--primary);font-weight:700}
 .container{max-width:1200px;margin:auto;padding:30px 24px}.hero{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}.hero h1{font-size:30px;margin:0 0 7px}.hero p{color:var(--muted);margin:0}.actions{display:flex;gap:10px}
-button,.btn{border:0;border-radius:10px;padding:11px 16px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}.btn.secondary{background:#eef0ff;color:var(--primary)}.btn.green{background:var(--green)}
+button,.btn{border:0;border-radius:10px;padding:11px 16px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}.btn.secondary{background:#eef0ff;color:var(--primary)}.btn.green{background:var(--green)}.btn.danger{background:#fdeeee;color:#c0392b}.btn.danger:hover{background:#fbdada}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(23,32,51,.45);align-items:center;justify-content:center;z-index:20}.modal-overlay.active{display:flex}.modal{background:#fff;border-radius:14px;padding:26px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2)}.modal h3{margin:0 0 10px;font-size:17px}.modal p{margin:0 0 20px;color:var(--muted);font-size:14px;line-height:1.5}.modal-actions{display:flex;justify-content:flex-end;gap:10px}.modal-actions button{padding:10px 16px}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}.card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:20px}.stat{font-size:28px;font-weight:800;margin-top:7px}.label{color:var(--muted);font-size:13px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:#fff;border:1px solid var(--border);border-radius:15px;padding:22px}.panel h2{font-size:17px;margin:0 0 17px}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:13px 8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}.table th{color:var(--muted);font-weight:600}.score{font-weight:800;color:var(--green)}.pill{display:inline-block;background:#eef0ff;color:var(--primary);padding:4px 8px;border-radius:99px;font-size:11px;font-weight:700}
 .view{display:none}.view.active{display:block}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:700;color:#475467}.field input,.field textarea,.field select{padding:11px;border:1px solid #dfe2ea;border-radius:9px;font:inherit}.field textarea{min-height:90px;resize:vertical}.form-actions{margin-top:17px;display:flex;gap:10px}
@@ -34,7 +35,7 @@ button,.btn{border:0;border-radius:10px;padding:11px 16px;background:var(--prima
 <main class="container">
 <section id="dashboard" class="view active">
 <div class="hero"><div><h1>AI-Powered Matchmaking</h1><p>Intelligent client–supplier discovery using ML and business compatibility.</p></div>
-<div class="actions"><button class="btn secondary" onclick="seed()">Load Demo Data</button><button onclick="refresh()">Refresh</button></div></div>
+<div class="actions"><button class="btn secondary" onclick="seed()">Load Demo Data</button><button onclick="refresh()">Refresh</button><button class="btn danger" onclick="resetData()">🗑️ Clear All Data</button></div></div>
 <div id="notice"></div>
 <div class="cards">
 <div class="card"><div class="label">CLIENTS</div><div class="stat" id="clientCount">0</div></div>
@@ -82,6 +83,17 @@ button,.btn{border:0;border-radius:10px;padding:11px 16px;background:var(--prima
 </section>
 </main>
 
+<div class="modal-overlay" id="resetModal">
+<div class="modal">
+<h3>Are you sure?</h3>
+<p>This will remove all clients, suppliers, matches and notifications. This action cannot be undone.</p>
+<div class="modal-actions">
+<button class="btn secondary" onclick="closeResetModal()">Cancel</button>
+<button class="btn danger" onclick="confirmReset()">Yes, clear everything</button>
+</div>
+</div>
+</div>
+
 <script>
 let DB={}; let chart;
 async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});return r.json()}
@@ -91,6 +103,9 @@ function renderRecent(){let box=document.getElementById('recent');let arr=[...DB
 function renderMatches(){let box=document.getElementById('matchList');if(!DB.matches?.length){box.innerHTML='<div class="panel empty">No matches available. Load demo data from the dashboard.</div>';return}let arr=[...DB.matches].sort((a,b)=>b.final_score-a.final_score);box.innerHTML=arr.map((m,i)=>{let c=DB.clients.find(x=>x.id===m.client_id),s=DB.suppliers.find(x=>x.id===m.supplier_id);let factors=[['Semantic similarity',m.semantic_score],['Category',m.category_score],['Quantity',m.quantity_score],['Budget',m.budget_score],['Location',m.location_score],['Delivery',m.delivery_score]];return `<div class="panel" style="margin-bottom:15px"><div class="matchtop"><div><span class="pill">RANK #${i+1}</span><h2 style="margin-top:10px">${c?.company_name||'Client'} ↔ ${s?.supplier_name||'Supplier'}</h2><div class="label">${s?.product_offered||''}</div></div><div class="bigscore">${m.final_score}%</div></div><div class="bars">${factors.map(f=>`<div class="barrow">${f[0]} <b style="float:right">${f[1]}%</b><div class="bar"><div class="fill" style="width:${f[1]}%"></div></div></div>`).join('')}</div><div class="explain"><b>AI explanation:</b> ${m.explanation}</div></div>`}).join('')}
 function renderChart(){let ctx=document.getElementById('chart');if(chart)chart.destroy();let bins=[0,0,0,0];DB.matches.forEach(m=>{if(m.final_score>=90)bins[0]++;else if(m.final_score>=75)bins[1]++;else if(m.final_score>=60)bins[2]++;else bins[3]++});chart=new Chart(ctx,{type:'bar',data:{labels:['90–100%','75–89%','60–74%','<60%'],datasets:[{label:'Matches',data:bins}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}})}
 async function seed(){let r=await api('/api/seed',{method:'POST'});document.getElementById('notice').innerHTML='<div class="notice">✓ '+r.message+'</div>';await refresh()}
+function resetData(){document.getElementById('resetModal').classList.add('active')}
+function closeResetModal(){document.getElementById('resetModal').classList.remove('active')}
+async function confirmReset(){let r=await api('/api/reset',{method:'POST'});closeResetModal();document.getElementById('notice').innerHTML='<div class="notice">✓ '+r.message+'</div>';await refresh()}
 document.getElementById('clientForm').onsubmit=async e=>{e.preventDefault();let o=Object.fromEntries(new FormData(e.target));o.quantity_required=+o.quantity_required;let c=await api('/api/clients',{method:'POST',body:JSON.stringify(o)});let r=await api('/api/match/'+c.id,{method:'POST'});document.getElementById('notice').innerHTML='<div class="notice">✓ Requirement saved and '+r.length+' supplier matches generated by the AI engine.</div>';e.target.reset();await refresh();show('matches')}
 document.getElementById('supplierForm').onsubmit=async e=>{e.preventDefault();let o=Object.fromEntries(new FormData(e.target));o.available_quantity=+o.available_quantity;await api('/api/suppliers',{method:'POST',body:JSON.stringify(o)});e.target.reset();document.getElementById('notice').innerHTML='<div class="notice">✓ Supplier offering registered successfully.</div>';await refresh();show('dashboard')}
 refresh();
