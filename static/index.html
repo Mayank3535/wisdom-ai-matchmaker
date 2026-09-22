@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wisdom MatchMaker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#172033;--muted:#667085;--primary:#5b5bd6;--border:#e7e9f0;--green:#159570}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.nav{height:68px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:5}
+.brand{font-size:21px;font-weight:800}.brand span{color:var(--primary)}.navlinks button{border:0;background:none;padding:10px 14px;color:#555;cursor:pointer;font-size:14px}.navlinks button.active{color:var(--primary);font-weight:700}
+.container{max-width:1200px;margin:auto;padding:30px 24px}.hero{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}.hero h1{font-size:30px;margin:0 0 7px}.hero p{color:var(--muted);margin:0}.actions{display:flex;gap:10px}
+button,.btn{border:0;border-radius:10px;padding:11px 16px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer}.btn.secondary{background:#eef0ff;color:var(--primary)}.btn.green{background:var(--green)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}.card{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:20px}.stat{font-size:28px;font-weight:800;margin-top:7px}.label{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:#fff;border:1px solid var(--border);border-radius:15px;padding:22px}.panel h2{font-size:17px;margin:0 0 17px}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:13px 8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}.table th{color:var(--muted);font-weight:600}.score{font-weight:800;color:var(--green)}.pill{display:inline-block;background:#eef0ff;color:var(--primary);padding:4px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.view{display:none}.view.active{display:block}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:700;color:#475467}.field input,.field textarea,.field select{padding:11px;border:1px solid #dfe2ea;border-radius:9px;font:inherit}.field textarea{min-height:90px;resize:vertical}.form-actions{margin-top:17px;display:flex;gap:10px}
+.match{border:1px solid var(--border);border-radius:13px;padding:16px;margin-bottom:12px}.matchtop{display:flex;justify-content:space-between}.match h3{margin:0 0 5px;font-size:15px}.bigscore{font-size:23px;font-weight:850;color:var(--green)}.bars{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}.barrow{font-size:11px;color:#667085}.bar{height:6px;background:#edf0f5;border-radius:5px;margin-top:4px;overflow:hidden}.fill{height:100%;background:var(--primary);border-radius:5px}.explain{font-size:12px;color:#667085;line-height:1.5;margin-top:11px}
+.notice{padding:12px;border-radius:10px;background:#f0fdf8;color:#116149;font-size:13px;margin-bottom:12px}.empty{color:var(--muted);padding:25px;text-align:center}
+@media(max-width:800px){.cards{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}.navlinks{display:none}.hero{display:block}.actions{margin-top:15px}}
+</style>
+</head>
+<body>
+<header class="nav">
+<div class="brand">WISDOM <span>MatchMaker</span></div>
+<div class="navlinks">
+<button onclick="show('dashboard',this)" class="active">Dashboard</button>
+<button onclick="show('clients',this)">Client Portal</button>
+<button onclick="show('suppliers',this)">Supplier Portal</button>
+<button onclick="show('matches',this)">AI Matches</button>
+</div>
+</header>
+
+<main class="container">
+<section id="dashboard" class="view active">
+<div class="hero"><div><h1>AI-Powered Matchmaking</h1><p>Intelligent client–supplier discovery using ML and business compatibility.</p></div>
+<div class="actions"><button class="btn secondary" onclick="seed()">Load Demo Data</button><button onclick="refresh()">Refresh</button></div></div>
+<div id="notice"></div>
+<div class="cards">
+<div class="card"><div class="label">CLIENTS</div><div class="stat" id="clientCount">0</div></div>
+<div class="card"><div class="label">SUPPLIERS</div><div class="stat" id="supplierCount">0</div></div>
+<div class="card"><div class="label">AI MATCHES</div><div class="stat" id="matchCount">0</div></div>
+<div class="card"><div class="label">AVG. SCORE</div><div class="stat" id="avgScore">0%</div></div>
+</div>
+<div class="grid">
+<div class="panel"><h2>Recent AI Matches</h2><div id="recent"></div></div>
+<div class="panel"><h2>Match Score Distribution</h2><canvas id="chart"></canvas></div>
+</div>
+</section>
+
+<section id="clients" class="view">
+<div class="hero"><div><h1>Client Portal</h1><p>Submit a procurement requirement for AI-powered supplier discovery.</p></div></div>
+<div class="panel"><form id="clientForm"><div class="formgrid">
+<div class="field"><label>Company / Client Name</label><input name="company_name" required></div>
+<div class="field"><label>Category</label><input name="category" placeholder="e.g. Solar Equipment" required></div>
+<div class="field full"><label>Product Requirement</label><textarea name="product_requirement" required></textarea></div>
+<div class="field"><label>Quantity Required</label><input type="number" name="quantity_required" required></div>
+<div class="field"><label>Budget (₹)</label><input name="budget" required></div>
+<div class="field"><label>Location</label><input name="location" required></div>
+<div class="field"><label>Delivery Timeline</label><input name="delivery_timeline" placeholder="e.g. 30 days" required></div>
+<div class="field full"><label>Additional Notes</label><textarea name="additional_notes"></textarea></div>
+</div><div class="form-actions"><button>Submit Requirement</button></div></form></div>
+</section>
+
+<section id="suppliers" class="view">
+<div class="hero"><div><h1>Supplier Portal</h1><p>Register your offering so the AI engine can identify compatible clients.</p></div></div>
+<div class="panel"><form id="supplierForm"><div class="formgrid">
+<div class="field"><label>Supplier Name</label><input name="supplier_name" required></div>
+<div class="field"><label>Category</label><input name="category" required></div>
+<div class="field full"><label>Product Offered</label><textarea name="product_offered" required></textarea></div>
+<div class="field"><label>Available Quantity</label><input type="number" name="available_quantity" required></div>
+<div class="field"><label>Price Per Unit (₹)</label><input name="pricing_details" required></div>
+<div class="field"><label>Location</label><input name="location" required></div>
+<div class="field"><label>Delivery Capability</label><input name="delivery_capability" placeholder="e.g. 15-20 days" required></div>
+<div class="field full"><label>Additional Notes</label><textarea name="additional_notes"></textarea></div>
+</div><div class="form-actions"><button>Register Supplier</button></div></form></div>
+</section>
+
+<section id="matches" class="view">
+<div class="hero"><div><h1>AI Match Results</h1><p>Ranked recommendations with transparent scoring and explanations.</p></div></div>
+<div id="matchList"></div>
+</section>
+</main>
+
+<script>
+let DB={}; let chart;
+async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});return r.json()}
+function show(id,el){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.navlinks button').forEach(x=>x.classList.remove('active'));if(el)el.classList.add('active');if(id==='matches')renderMatches()}
+async function refresh(){DB=await api('/api/data');document.getElementById('clientCount').textContent=DB.clients.length;document.getElementById('supplierCount').textContent=DB.suppliers.length;document.getElementById('matchCount').textContent=DB.matches.length;let avg=DB.matches.length?DB.matches.reduce((a,b)=>a+b.final_score,0)/DB.matches.length:0;document.getElementById('avgScore').textContent=avg.toFixed(0)+'%';renderRecent();renderChart();renderMatches()}
+function renderRecent(){let box=document.getElementById('recent');let arr=[...DB.matches].sort((a,b)=>b.final_score-a.final_score).slice(0,6);if(!arr.length){box.innerHTML='<div class="empty">No matches yet. Load demo data to explore the AI engine.</div>';return}box.innerHTML=arr.map(m=>{let c=DB.clients.find(x=>x.id===m.client_id),s=DB.suppliers.find(x=>x.id===m.supplier_id);return `<div class="match"><div class="matchtop"><div><h3>${c?.company_name||'Client'} → ${s?.supplier_name||'Supplier'}</h3><span class="pill">${c?.category||''}</span></div><div class="bigscore">${m.final_score}%</div></div></div>`}).join('')}
+function renderMatches(){let box=document.getElementById('matchList');if(!DB.matches?.length){box.innerHTML='<div class="panel empty">No matches available. Load demo data from the dashboard.</div>';return}let arr=[...DB.matches].sort((a,b)=>b.final_score-a.final_score);box.innerHTML=arr.map((m,i)=>{let c=DB.clients.find(x=>x.id===m.client_id),s=DB.suppliers.find(x=>x.id===m.supplier_id);let factors=[['Semantic similarity',m.semantic_score],['Category',m.category_score],['Quantity',m.quantity_score],['Budget',m.budget_score],['Location',m.location_score],['Delivery',m.delivery_score]];return `<div class="panel" style="margin-bottom:15px"><div class="matchtop"><div><span class="pill">RANK #${i+1}</span><h2 style="margin-top:10px">${c?.company_name||'Client'} ↔ ${s?.supplier_name||'Supplier'}</h2><div class="label">${s?.product_offered||''}</div></div><div class="bigscore">${m.final_score}%</div></div><div class="bars">${factors.map(f=>`<div class="barrow">${f[0]} <b style="float:right">${f[1]}%</b><div class="bar"><div class="fill" style="width:${f[1]}%"></div></div></div>`).join('')}</div><div class="explain"><b>AI explanation:</b> ${m.explanation}</div></div>`}).join('')}
+function renderChart(){let ctx=document.getElementById('chart');if(chart)chart.destroy();let bins=[0,0,0,0];DB.matches.forEach(m=>{if(m.final_score>=90)bins[0]++;else if(m.final_score>=75)bins[1]++;else if(m.final_score>=60)bins[2]++;else bins[3]++});chart=new Chart(ctx,{type:'bar',data:{labels:['90–100%','75–89%','60–74%','<60%'],datasets:[{label:'Matches',data:bins}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}})}
+async function seed(){let r=await api('/api/seed',{method:'POST'});document.getElementById('notice').innerHTML='<div class="notice">✓ '+r.message+'</div>';await refresh()}
+document.getElementById('clientForm').onsubmit=async e=>{e.preventDefault();let o=Object.fromEntries(new FormData(e.target));o.quantity_required=+o.quantity_required;let c=await api('/api/clients',{method:'POST',body:JSON.stringify(o)});let r=await api('/api/match/'+c.id,{method:'POST'});document.getElementById('notice').innerHTML='<div class="notice">✓ Requirement saved and '+r.length+' supplier matches generated by the AI engine.</div>';e.target.reset();await refresh();show('matches')}
+document.getElementById('supplierForm').onsubmit=async e=>{e.preventDefault();let o=Object.fromEntries(new FormData(e.target));o.available_quantity=+o.available_quantity;await api('/api/suppliers',{method:'POST',body:JSON.stringify(o)});e.target.reset();document.getElementById('notice').innerHTML='<div class="notice">✓ Supplier offering registered successfully.</div>';await refresh();show('dashboard')}
+refresh();
+</script>
+</body>
+</html>
